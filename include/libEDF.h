@@ -15,12 +15,15 @@
 # include <stdint.h>
 #endif
 
+#define ROUND_DOWN(x, s) ((x) & ~((s)-1))
+
 #include <vector>
 #include <string>
 
 using namespace std;
 
 enum EDF_DataType {
+  EDF_NO_TYPE = 0,
   EDF_INT_08_S,
   EDF_INT_08_U,
   EDF_INT_16_S,
@@ -70,9 +73,62 @@ struct EDF_Fields {
 struct EDF_Data {
   void * data;
   size_t totPixels;
-  size_t numDimensions;
-  size_t * dimensions;
+  vector<size_t> dimensions;
   EDF_DataType dataType;
+
+  EDF_Data() : data(NULL), totPixels(0), dataType(EDF_NO_TYPE) { }
+  ~EDF_Data();
+
+  const size_t getPixelSize() const;
+
+  template<typename Type>
+  const Type getPixel(size_t pos) const
+  {
+    switch (this->dataType) {
+      case EDF_INT_08_S: {
+        const int8_t * pixels = (const int8_t *) this->data;
+        return pixels[pos];
+      }
+      case EDF_INT_08_U: {
+        const uint8_t * pixels = (const uint8_t *) this->data;
+        return pixels[pos];
+      }
+      case EDF_INT_16_S: {
+        const int16_t * pixels = (const int16_t *) this->data;
+        return pixels[pos];
+      }
+      case EDF_INT_16_U: {
+        const uint16_t * pixels = (const uint16_t *) this->data;
+        return pixels[pos];
+      }
+      case EDF_INT_32_S: {
+        const int32_t * pixels = (const int32_t *) this->data;
+        return pixels[pos];
+      }
+      case EDF_INT_32_U: {
+        const uint32_t * pixels = (const uint32_t *) this->data;
+        return pixels[pos];
+      }
+      case EDF_FLOAT_32: {
+        const float * pixels = (const float *) this->data;
+        return pixels[pos];
+      }
+      case EDF_INT_64_S: {
+        const int64_t * pixels = (const int64_t *) this->data;
+        return pixels[pos];
+      }
+      case EDF_INT_64_U: {
+        const uint64_t * pixels = (const uint64_t *) this->data;
+        return pixels[pos];
+      }
+      case EDF_FLOAT_64: {
+        const double * pixels = (const double *) this->data;
+        return pixels[pos];
+      }
+      default:
+        return 0;
+    }
+  }
 };
 
 class EDF_File {
@@ -85,8 +141,9 @@ public:
 
   EDF_Fields & getFields() { return fields; }
   EDF_Data & getData() { return data; }
-};
 
-extern bool EDF_parse_file(EDF_File &, const char *);
+  bool parse_file(const char *);
+  bool load_file(const char *);
+};
 
 #endif

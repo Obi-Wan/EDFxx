@@ -5,6 +5,7 @@
 #include "libEDF.h"
 
 int yyparse(EDF_File * edf_file);
+extern void yyrestart(FILE * input_file);
 
 #if ! defined YYLTYPE && ! defined YYLTYPE_IS_DECLARED
 typedef struct YYLTYPE
@@ -56,6 +57,10 @@ typedef struct YYLTYPE
     size_t len;
   } str;
 
+  size_t num;
+
+  enum EDF_DataType type;
+
   class EDF_IntField * intField;
   class EDF_FloatField * floatField;
   class EDF_StringField * stringField;
@@ -64,6 +69,12 @@ typedef struct YYLTYPE
 %token <str> INTEGER
 %token <str> FLOAT
 %token <str> ID
+
+%token <num> DIM
+
+%token DATA_TYPE T_F64 T_F32 T_U08 T_I08 T_U16 T_I16 T_U32 T_I32 T_U64 T_I64
+%type <type> type
+%type <str> array
 
 %code top {
 #include "edf_header_parser.h"
@@ -85,7 +96,17 @@ header
       ;
 
 line
-      : ID '=' ID ';'
+      : DIM '=' INTEGER ';'
+              { const string arg3 = string($3.text, $3.len);
+                size_t numDims = edf_file->getData().dimensions.size();
+                if (numDims < $1) {
+                  edf_file->getData().dimensions.resize($1, 1);
+                }
+                edf_file->getData().dimensions[$1-1] = atoi(arg3.c_str()); }
+      | DATA_TYPE '=' type ';'
+              { edf_file->getData().dataType = $3;
+                edf_file->getFields().intFields.push_back( "DataType", $3); }
+      | ID '=' ID ';'
               { const string arg1 = string($1.text, $1.len);
                 const string arg3 = string($3.text, $3.len);
                 edf_file->getFields().stringFields.push_back( arg1, arg3); }
@@ -93,12 +114,29 @@ line
               { const string arg1 = string($1.text, $1.len);
                 const string arg3 = string($3.text, $3.len);
                 edf_file->getFields().intFields.push_back( arg1, atoi(arg3.c_str()) ); }
-      | ID '=' FLOAT ';'
+      | ID '=' array ';'
               { const string arg1 = string($1.text, $1.len);
                 const string arg3 = string($3.text, $3.len);
                 edf_file->getFields().floatFields.push_back( arg1, atof(arg3.c_str()) ); }
       ;
 
+array
+      : array FLOAT { $$ = $1; /* XXX - Fluffy Array Handling */ }
+      | FLOAT       { $$ = $1; }
+      ;
+
+type
+      : T_F64 { $$ = EDF_FLOAT_64; }
+      | T_F32 { $$ = EDF_FLOAT_32; }
+      | T_U08 { $$ = EDF_INT_08_U; }
+      | T_I08 { $$ = EDF_INT_08_S; }
+      | T_U16 { $$ = EDF_INT_16_U; }
+      | T_I16 { $$ = EDF_INT_16_S; }
+      | T_U32 { $$ = EDF_INT_32_U; }
+      | T_I32 { $$ = EDF_INT_32_S; }
+      | T_U64 { $$ = EDF_INT_64_U; }
+      | T_I64 { $$ = EDF_INT_64_S; }
+      ;
 
 %%
 

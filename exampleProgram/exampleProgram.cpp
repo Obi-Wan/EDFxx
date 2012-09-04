@@ -15,9 +15,29 @@
 
 #include "libEDF.h"
 
-int main(void) {
-  EDF_File bene;
-  EDF_parse_file(bene,
-      "/media/windows/D/Documenti/Progetti/sandbox-fluo-tomography/single_channel01055.edf");
-  return 0;
+#include <cstdio>
+#include <cstdlib>
+
+using namespace std;
+
+int
+main(int argc, char** argv)
+{
+  char * filename = NULL;
+  if (argc < 2) {
+    fprintf(stderr, "No file specified\n");
+    return EXIT_FAILURE;
+  } else {
+    filename = argv[1];
+  }
+  double yeah = 0;
+  for (size_t count = 0; count < 200; count++) {
+    EDF_File edfFile;
+    if (!edfFile.load_file(filename)) {
+      return EXIT_FAILURE;
+    }
+    yeah += edfFile.getData().getPixel<double>(40);
+  }
+  printf("Val: %lf\n", yeah);
+  return EXIT_SUCCESS;
 }

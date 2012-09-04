@@ -32,6 +32,13 @@ EXT_ID    ({LETT_DIG}|{SPL_KEYS})
 
 "}"\n {
             edf_file->getFields().headerLength = yylloc->bytesParsed;
+            size_t totPixels = 1;
+            for(size_t count = 0; count < edf_file->getData().dimensions.size();
+                count++)
+            {
+              totPixels *= edf_file->getData().dimensions[count];
+            }
+            edf_file->getData().totPixels = totPixels;
             yyterminate();
           }
 
@@ -45,10 +52,59 @@ EXT_ID    ({LETT_DIG}|{SPL_KEYS})
             return INTEGER;
           }
 
-({DIGIT}+\.{DIGIT}*|.{DIGIT}+) {
+({DIGIT}+\.{DIGIT}*|\.{DIGIT}+) {
             yylval->str.text = yytext;
             yylval->str.len = yyleng;
             return FLOAT;
+          }
+
+Dim_{DIGIT}+ {
+            yylval->num = atoi(yytext+4);
+            return DIM;
+          }
+
+DataType {
+            return DATA_TYPE;
+          }
+
+DoubleValue {
+            return T_F64;
+          }
+
+(FloatValue|Float|Real) {
+            return T_F32;
+          }
+
+Unsigned64 {
+            return T_U64;
+          }
+
+Signed64 {
+            return T_I64;
+          }
+
+(UnsignedInteger|UnsignedLong) {
+            return T_U32;
+          }
+
+(SignedInteger|SignedLong) {
+            return T_I32;
+          }
+
+UnsignedShort {
+            return T_U16;
+          }
+
+SignedShort {
+            return T_I16;
+          }
+
+UnsignedByte {
+            return T_U08;
+          }
+
+SignedByte {
+            return T_I08;
           }
 
 {EXT_ID}+ {
@@ -63,6 +119,8 @@ EXT_ID    ({LETT_DIG}|{SPL_KEYS})
             yylloc->last_line++;
             yylloc->last_column = 1;
             yylloc->bytesParsed = yyleng;
+
+            edf_file->getData().dimensions.resize(3, 1);
           }
 \n {
             yylloc->first_line++;
