@@ -76,8 +76,21 @@ struct EDF_Data {
   vector<size_t> dimensions;
   EDF_DataType dataType;
 
-  EDF_Data() : data(NULL), totPixels(0), dataType(EDF_NO_TYPE) { }
+private:
+  void *(* allocator)(size_t);
+  void (* deallocator)(void *);
+
+public:
+  EDF_Data();
   ~EDF_Data();
+
+  void setAllocator(void *(* _alloc)(size_t)) { this->allocator = _alloc; }
+  void setDeallocator(void (* _dealloc)(void *)) { this->deallocator = _dealloc; }
+
+  bool alloc() { data = allocator(totPixels * getPixelSize()); return data; }
+  void dealloc() { if (data) { deallocator(data); data = NULL; } }
+
+  void transpose();
 
   const size_t getPixelSize() const;
 
@@ -129,6 +142,10 @@ struct EDF_Data {
         return 0;
     }
   }
+
+private:
+  template<typename Type>
+  void _transpose(Type * basePointer, const size_t & dimX, const size_t & dimY);
 };
 
 class EDF_File {
@@ -143,7 +160,7 @@ public:
   EDF_Data & getData() { return data; }
 
   bool parse_file(const char *);
-  bool load_file(const char *);
+  bool load_file(const char *, const bool transpose = false);
 };
 
 #endif
