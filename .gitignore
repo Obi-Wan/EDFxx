@@ -1,0 +1,41 @@
+# Binary files and Co.
+*.o
+*.la
+*.lo
+*.so*
+*.a
+*.lai
+*.deps
+*.libs
+exampleProgram/exampleProgram
+
+# Autotools
+.autotools
+*.in
+*Makefile
+*.m4
+autom4te*
+configure
+ylwrap
+missing
+ltmain.sh
+libtool
+install-sh
+compile
+config.*
+depcomp
+
+# Parser
+libEDF/edf_header_parser.cpp
+libEDF/edf_header_parser.h
+libEDF/edf_header_lexer.cpp
+
+# Data
+*.edf
+
+# Project
+.cproject
+.project
+.gitignore.swp
+.settings
+
