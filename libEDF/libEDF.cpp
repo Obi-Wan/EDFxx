@@ -228,22 +228,54 @@ EDF_Data::transpose()
   this->data = newData;
 }
 
+inline void
+EDF_File::_parse_header(FILE * fid)
+{
+  if (fid) {
+    yyrestart(fid);
+    int32_t res = yyparse(this);
+    if (res) {
+      fprintf(stderr, "An error may have occurred, code: %3d\n", res);
+      throw runtime_error("Error parsing\n");
+    }
+  }
+}
+
+inline void
+EDF_File::_load_data(FILE * fid)
+{
+  const size_t pixelSize = this->getData().getPixelSize();
+  // The parser moves a little bit too further ( YY_READ_BUF_SIZE )
+  fseek(fid, this->getFields().headerLength, SEEK_SET);
+
+  if (!this->getData().alloc()) {
+    throw runtime_error("An error occurred in memory allocation\n");
+  }
+
+  int8_t * bufferPos = (int8_t *)this->getData().data;
+  const size_t block = 256;
+
+  // Simple loading
+  for(size_t count = 0; count < this->getData().totPixels; count += block)
+  {
+    size_t readBytes = fread(bufferPos, pixelSize, block, fid);
+    bufferPos += (pixelSize*block);
+
+    if (readBytes < block && ferror(yyin)) {
+      throw runtime_error("Error reading\n");
+    }
+  }
+}
+
 bool
 EDF_File::parse_file(const char * fileName)
 {
   yyin = fopen(fileName, "r");
-  if (yyin) {
-    yyrestart(yyin);
-    try {
-      int32_t res = yyparse(this);
-      if (res) {
-        fprintf(stderr, "An error may have occurred, code: %3d\n", res);
-        throw runtime_error("Error parsing\n");
-      }
-    } catch (const exception & e) {
-      fclose(yyin);
-      return false;
-    }
+  try {
+    _parse_header(yyin);
+  } catch (const exception & e) {
+    fclose(yyin);
+    return false;
   }
   printf( "Header size: %lu, Image size: (%lu, %lu, %lu) -> %lu (bytes per pixel %lu)\n",
           this->getFields().headerLength, this->getData().dimensions[0],
@@ -254,49 +286,42 @@ EDF_File::parse_file(const char * fileName)
   return true;
 }
 
+
+bool
+EDF_File::load_data(const char * fileName, const bool transpose)
+{
+  FILE * fid = fopen(fileName, "r");
+
+  try {
+    _load_data(fid);
+  } catch (const exception & e) {
+    fclose(fid);
+    this->getData().dealloc();
+    fprintf(stderr, "An error occurred in reading: %s\n", e.what());
+    return false;
+  }
+
+  if (transpose) {
+    this->getData().transpose();
+  }
+
+  fclose(fid);
+  return true;
+}
+
 bool
 EDF_File::load_file(const char * fileName, const bool transpose)
 {
   yyin = fopen(fileName, "r");
-  if (yyin) {
-    yyrestart(yyin);
-    try {
-      int32_t res = yyparse(this);
-      if (res) {
-        fprintf(stderr, "An error may have occurred, code: %3d\n", res);
-        throw runtime_error("Error parsing\n");
-      }
-    } catch (const exception & e) {
-      fclose(yyin);
-      return false;
-    }
-  }
-  // The parser moves a little bit too further
-  fseek(yyin, this->getFields().headerLength, SEEK_SET);
-
-  const size_t pixelSize = this->getData().getPixelSize();
-//  printf( "Header size: %lu, Image size: (%lu, %lu, %lu) -> %lu (bytes per pixel %lu)\n",
-//          this->getFields().headerLength, this->getData().dimensions[0],
-//          this->getData().dimensions[1], this->getData().dimensions[2],
-//          this->getData().totPixels, pixelSize);
-
-  if (!this->getData().alloc()) {
+  try {
+    _parse_header(yyin);
+  } catch (const exception & e) {
     fclose(yyin);
-    fprintf(stderr, "An error occurred in memory allocation\n");
     return false;
   }
 
-  // Simple loading
   try {
-    int8_t * bufferPos = (int8_t *)this->getData().data;
-    const size_t block = 256;
-    for(size_t count = 0; count < this->getData().totPixels; count += block) {
-      size_t readBytes = fread(bufferPos, pixelSize, block, yyin);
-      bufferPos += (pixelSize*block);
-      if (readBytes < block && ferror(yyin)) {
-        throw runtime_error("Error reading\n");
-      }
-    }
+    _load_data(yyin);
   } catch (const exception & e) {
     fclose(yyin);
     this->getData().dealloc();

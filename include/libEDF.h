@@ -154,6 +154,9 @@ class EDF_File {
 protected:
   EDF_Fields fields;
   EDF_Data data;
+
+  void _parse_header(FILE * fid);
+  void _load_data(FILE * fid);
 public:
   const EDF_Fields & getFields() const { return fields; }
   const EDF_Data & getData() const { return data; }
@@ -163,6 +166,7 @@ public:
 
   bool parse_file(const char *);
   bool load_file(const char *, const bool transpose = false);
+  bool load_data(const char *, const bool transpose = false);
 };
 
 #endif
