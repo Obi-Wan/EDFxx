@@ -79,6 +79,7 @@ struct EDF_Data {
 private:
   void *(* allocator)(size_t);
   void (* deallocator)(void *);
+  static void * alignedAllocator(size_t);
 
 public:
   EDF_Data();
@@ -145,7 +146,8 @@ public:
 
 private:
   template<typename Type>
-  void _transpose(Type * basePointer, const size_t & dimX, const size_t & dimY);
+  void _transpose(const Type * const basePointer, Type * const outPointer,
+      const size_t & dimX, const size_t & dimY);
 };
 
 class EDF_File {
