@@ -4,6 +4,8 @@
 
 #include "libEDF.h"
 
+#define YY_READ_BUF_SIZE 2048
+
 int yyparse(EDF_File * edf_file);
 extern void yyrestart(FILE * input_file);
 
@@ -56,6 +58,7 @@ typedef struct YYLTYPE
     const char * text;
     size_t len;
   } str;
+  string * strcpp;
 
   size_t num;
 
@@ -75,7 +78,7 @@ typedef struct YYLTYPE
 %token DATA_TYPE T_F64 T_F32 T_U08 T_I08 T_U16 T_I16 T_U32 T_I32 T_U64 T_I64
 %type <type> type
 %type <str> array
-%type <str> string_array
+%type <strcpp> string_array
 
 %code top {
 #include "edf_header_parser.h"
@@ -109,8 +112,8 @@ line
                 edf_file->getFields().intFields.push_back( "DataType", $3); }
       | ID '=' string_array ';'
               { const string arg1 = string($1.text, $1.len);
-                const string arg3 = string($3.text, $3.len);
-                edf_file->getFields().stringFields.push_back( arg1, arg3); }
+                edf_file->getFields().stringFields.push_back( arg1, *($3));
+                delete $3; }
       | ID '=' INTEGER ';'
               { const string arg1 = string($1.text, $1.len);
                 const string arg3 = string($3.text, $3.len);
@@ -122,9 +125,9 @@ line
       ;
 
 string_array
-      : string_array ID   { const string temp = string($1.text, $1.len) + " " + string($2.text, $2.len);
-                            $$.text = temp.c_str(); $$.len = temp.size(); }
-      | ID                { $$ = $1; }
+      : string_array ID   { $$ = new string(*($1) + " " + string($2.text, $2.len));
+                            delete $1; }
+      | ID                { $$ = new string($1.text, $1.len); }
       ;
 
 array
