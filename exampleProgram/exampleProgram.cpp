@@ -31,13 +31,13 @@ main(int argc, char** argv)
     filename = argv[1];
   }
   double yeah = 0;
-  for (size_t count = 0; count < 200; count++) {
+  for (size_t count = 0; count < 50; count++) {
     EDF_File edfFile;
-    if (!edfFile.load_file(filename)) {
+    if (!edfFile.load_file(filename, true)) {
       return EXIT_FAILURE;
     }
-    yeah += edfFile.getData().getPixel<double>(40);
+    yeah += edfFile.getData().getPixel<double>(500);
   }
-  printf("Val: %lf\n", yeah);
+  printf("Val: %2.10lf\n", yeah);
   return EXIT_SUCCESS;
 }
