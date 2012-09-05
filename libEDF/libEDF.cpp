@@ -34,7 +34,7 @@ EDF_Data::getPixelSize() const
 
 EDF_Data::EDF_Data()
   : data(NULL), totPixels(0), dataType(EDF_NO_TYPE), allocator(&alignedAllocator)
-  , deallocator(free)
+  , deallocator(free), allocatedSize(0)
 { }
 
 EDF_Data::~EDF_Data()
@@ -248,7 +248,7 @@ EDF_File::_load_data(FILE * fid)
   // The parser moves a little bit too further ( YY_READ_BUF_SIZE )
   fseek(fid, this->getFields().headerLength, SEEK_SET);
 
-  if (!this->getData().alloc()) {
+  if (!this->getData().realloc()) {
     throw runtime_error("An error occurred in memory allocation\n");
   }
 

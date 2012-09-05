@@ -81,6 +81,8 @@ private:
   void (* deallocator)(void *);
   static void * alignedAllocator(size_t);
 
+  size_t allocatedSize;
+
 public:
   EDF_Data();
   ~EDF_Data();
@@ -88,8 +90,32 @@ public:
   void setAllocator(void *(* _alloc)(size_t)) { this->allocator = _alloc; }
   void setDeallocator(void (* _dealloc)(void *)) { this->deallocator = _dealloc; }
 
-  bool alloc() { data = allocator(totPixels * getPixelSize()); return data; }
-  void dealloc() { if (data) { deallocator(data); data = NULL; } }
+  bool alloc()
+  {
+    allocatedSize = totPixels * getPixelSize();
+    data = allocator(allocatedSize);
+    return data;
+  }
+  bool realloc()
+  {
+    const size_t toBeAllocated = totPixels * getPixelSize();
+    if (data && (allocatedSize == toBeAllocated)) {
+      return true;
+    } else {
+      allocatedSize = toBeAllocated;
+      data = allocator(allocatedSize);
+      return data;
+    }
+    return data;
+  }
+  void dealloc()
+  {
+    if (data) {
+      deallocator(data);
+      data = NULL;
+      allocatedSize = 0;
+    }
+  }
 
   void transpose();
 
