@@ -50,6 +50,21 @@ EDF_Data::alignedAllocator(size_t _size)
   return newMem;
 }
 
+inline void
+EDF_Data::copyBufer(const int8_t * const in, int8_t * const out, const size_t & _size)
+{
+  typedef int8_t v16sb __attribute__ ((vector_size (16))) __attribute__ ((aligned(16)));
+  const size_t roundedSize = ROUND_DOWN(_size, 16);
+  for(size_t count = 0; count < roundedSize; count += 16)
+  {
+    *((v16sb *)&out[count]) = *((const v16sb *)&in[count]);
+  }
+  for(size_t count = roundedSize; count < _size; count++)
+  {
+    out[count] = in[count];
+  }
+}
+
 template<typename Type>
 inline void
 EDF_Data::_transpose(const Type * const inPointer, Type * const outPointer,

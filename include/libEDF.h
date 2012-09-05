@@ -83,6 +83,8 @@ private:
 
   size_t allocatedSize;
 
+  void copyBufer(const int8_t * const, int8_t * const, const size_t &);
+
 public:
   EDF_Data();
   ~EDF_Data();
